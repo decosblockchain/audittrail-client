@@ -3,8 +3,11 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
-	"github.com/decosblockchain/blockchain-audittrail/client/routes"
+	"github.com/decosblockchain/audittrail-client/library"
+	"github.com/decosblockchain/audittrail-client/logging"
+	"github.com/decosblockchain/audittrail-client/routes"
 
 	"github.com/gorilla/mux"
 	"github.com/kardianos/service"
@@ -21,8 +24,8 @@ func (p *program) Start(s service.Service) error {
 }
 func (p *program) run() {
 	r := mux.NewRouter()
-    r.HandleFunc("/audit", routes.AuditHandler)
-	
+	r.HandleFunc("/audit", routes.AuditHandler)
+
 	log.Fatal(http.ListenAndServe(":8000", r))
 }
 func (p *program) Stop(s service.Service) error {
@@ -31,6 +34,11 @@ func (p *program) Stop(s service.Service) error {
 }
 
 func main() {
+	logging.Init(os.Stdout, os.Stdout, os.Stdout, os.Stdout)
+
+	address, _ := library.GetAddress()
+	logging.Info.Printf("My address is %s", address)
+
 	svcConfig := &service.Config{
 		Name:        "DecosBlockchainAuditConnector",
 		DisplayName: "Decos Blockchain Audit Connector",
@@ -38,16 +46,21 @@ func main() {
 	}
 
 	prg := &program{}
-	s, err := service.New(prg, svcConfig)
-	if err != nil {
-		log.Fatal(err)
-	}
-	logger, err = s.Logger(nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = s.Run()
-	if err != nil {
-		logger.Error(err)
+
+	if len(os.Args) > 1 && os.Args[1] == "console" {
+		prg.run()
+	} else {
+		s, err := service.New(prg, svcConfig)
+		if err != nil {
+			log.Fatal(err)
+		}
+		logger, err = s.Logger(nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = s.Run()
+		if err != nil {
+			logger.Error(err)
+		}
 	}
 }

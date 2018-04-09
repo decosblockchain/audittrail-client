@@ -1,0 +1,23 @@
+version: "2"
+services:
+  audittrail-client:
+    image: audittrail-client
+    volumes:
+      - ./clientdata:/app/bin/data
+    restart: always
+    expose: 
+      - "3000"
+    environment:
+      - SERVER=https://audit.decosblockchain.com/api/
+    networks:
+      vpcbr:
+        ipv4_address: 172.30.0.4
+       
+
+networks:    
+  vpcbr:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+          gateway: 172.30.0.1
