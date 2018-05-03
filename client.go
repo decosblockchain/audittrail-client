@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/decosblockchain/audittrail-client/config"
 	"github.com/decosblockchain/audittrail-client/library"
 	"github.com/decosblockchain/audittrail-client/logging"
 	"github.com/decosblockchain/audittrail-client/routes"
@@ -25,17 +26,6 @@ func (p *program) Start(s service.Service) error {
 	return nil
 }
 func (p *program) run() {
-	r := mux.NewRouter()
-	r.HandleFunc("/audit", routes.AuditHandler)
-
-	log.Fatal(http.ListenAndServe(":8000", r))
-}
-func (p *program) Stop(s service.Service) error {
-	// Stop should not block. Return with a few seconds.
-	return nil
-}
-
-func main() {
 	// Create data, log directories if they do not exist
 	if _, err := os.Stat("./log"); os.IsNotExist(err) {
 		os.Mkdir("./log", 0775)
@@ -73,6 +63,11 @@ func main() {
 	}
 
 	logging.Init(lw, lw, lw, lw)
+	config.Init()
+
+	if len(os.Args) > 1 && os.Args[1] == "console" {
+		logging.Info.Println("Running in console mode")
+	}
 
 	address, err := library.GetAddress()
 	if err != nil {
@@ -80,6 +75,18 @@ func main() {
 		os.Exit(4)
 	}
 	logging.Info.Printf("My address is %s", address)
+
+	r := mux.NewRouter()
+	r.HandleFunc("/audit", routes.AuditHandler)
+
+	log.Fatal(http.ListenAndServe(":8000", r))
+}
+func (p *program) Stop(s service.Service) error {
+	// Stop should not block. Return with a few seconds.
+	return nil
+}
+
+func main() {
 
 	svcConfig := &service.Config{
 		Name:        "DecosBlockchainAuditConnector",
@@ -90,16 +97,21 @@ func main() {
 	prg := &program{}
 
 	if len(os.Args) > 1 && os.Args[1] == "console" {
-		logging.Info.Println("Running in console mode")
 		prg.run()
 	} else {
 		s, err := service.New(prg, svcConfig)
 		if err != nil {
 			log.Fatal(err)
+			os.Exit(2)
 		}
-		logger, err = s.Logger(nil)
-		if err != nil {
-			log.Fatal(err)
+		if len(os.Args) > 1 {
+			err = service.Control(s, os.Args[1])
+			if err != nil {
+				log.Fatal(err)
+				os.Exit(3)
+			}
+			log.Printf("Service control action [%s] executed succesfully", os.Args[1])
+			os.Exit(0)
 		}
 		err = s.Run()
 		if err != nil {
