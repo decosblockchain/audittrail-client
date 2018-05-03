@@ -1,0 +1,4 @@
+{
+    "ServerUrl" : "https://audit.decosblockchain.com/api/",
+    "LogLevel"  : "INFO"    
+}

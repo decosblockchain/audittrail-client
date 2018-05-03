@@ -1,20 +1,26 @@
 package config
 
 import (
-	"os"
+	"github.com/tkanos/gonfig"
 )
 
+type Configuration struct {
+	ServerUrl string
+}
+
+var configuration Configuration
+
+func Init() {
+	err := gonfig.GetConf("config.json", &configuration)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func ServerUrl() string {
-	return getEnv("SERVER", "http://audittrail-server:3000/")
+	return configuration.ServerUrl
 }
 
 func SendUrl() string {
 	return ServerUrl() + "send"
-}
-
-func getEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-	return fallback
 }

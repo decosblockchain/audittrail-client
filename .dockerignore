@@ -2,3 +2,4 @@
 #docker datadir
 data/
 clientdata/
+log/
