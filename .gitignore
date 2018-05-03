@@ -18,3 +18,4 @@ clientdata/
 log/*
 bin/*
 out/*
+audittrail-client

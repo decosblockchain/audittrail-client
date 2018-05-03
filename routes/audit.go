@@ -38,7 +38,6 @@ type AuditResponse struct {
 }
 
 func AuditHandler(w http.ResponseWriter, r *http.Request) {
-	logging.Info.Printf("Received request to /audit\n")
 	if r.Method != "POST" {
 		logging.Error.Printf("Received illegal HTTP Method in request to /audit: %s\n", r.Method)
 		w.Header().Set("Allow", "POST")

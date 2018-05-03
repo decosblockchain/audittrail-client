@@ -5,7 +5,10 @@ import (
 	"encoding/binary"
 	"io/ioutil"
 	"os"
+	"path"
 	"sync"
+
+	"github.com/decosblockchain/audittrail-client/config"
 
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -31,20 +34,20 @@ func GetKey() (*ecdsa.PrivateKey, error) {
 
 	keyMutex.Lock()
 	if key == nil {
-		if _, err := os.Stat("data/keyfile.hex"); os.IsNotExist(err) {
+		if _, err := os.Stat(path.Join(config.BaseDir(), "data", "keyfile.hex")); os.IsNotExist(err) {
 			generatedKey, err := crypto.GenerateKey()
 			if err != nil {
 				keyMutex.Unlock()
 				return nil, err
 			}
-			err = crypto.SaveECDSA("data/keyfile.hex", generatedKey)
+			err = crypto.SaveECDSA(path.Join(config.BaseDir(), "data", "keyfile.hex"), generatedKey)
 			if err != nil {
 				keyMutex.Unlock()
 				return nil, err
 			}
 		}
 
-		privateKey, err := crypto.LoadECDSA("data/keyfile.hex")
+		privateKey, err := crypto.LoadECDSA(path.Join(config.BaseDir(), "data", "keyfile.hex"))
 		if err != nil {
 			keyMutex.Unlock()
 			return nil, err
@@ -62,18 +65,18 @@ func writeNonce() error {
 	b := make([]byte, 8)
 	binary.LittleEndian.PutUint64(b, nonce)
 
-	err := ioutil.WriteFile("data/nonce.hex", b, 0600)
+	err := ioutil.WriteFile(path.Join(config.BaseDir(), "data", "nonce.hex"), b, 0600)
 	return err
 }
 
 func readNonce() error {
-	if _, err := os.Stat("data/nonce.hex"); os.IsNotExist(err) {
+	if _, err := os.Stat(path.Join(config.BaseDir(), "data", "nonce.hex")); os.IsNotExist(err) {
 		err := writeNonce()
 		if err != nil {
 			return err
 		}
 	}
-	b, err := ioutil.ReadFile("data/nonce.hex")
+	b, err := ioutil.ReadFile(path.Join(config.BaseDir(), "data", "nonce.hex"))
 	if err != nil {
 		return err
 	}

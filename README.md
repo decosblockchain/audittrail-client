@@ -6,13 +6,22 @@ The installation involves a few easy steps.
 
 ### Download
 
-First, download the appropriate release file for your platform from [https://github.com/decosblockchain/audittrail-client/releases](our releases page). 
+First, download the appropriate release file for your platform from [our releases page](https://github.com/decosblockchain/audittrail-client/releases). 
 
 ### Unpack
 
 NOTE: On Windows platforms make sure the download is unblocked before you unpack it.
 
 Unpack the files into a folder of your preference. The log files are written into a subdirectory of where you place the application data. They are limited to 10MB (rolling logs). So you don't need excessive space on the device you are installing the software.
+
+### Edit the configuration file
+
+The file ```config.json``` contains two configuration parameters. Under normal circumstances, these don't need to be adjusted. You can however decide to alter them if your situation requires.
+
+| Setting   | Description |
+|-----------|-------------|
+| ```ServerUrl``` | The HTTP endpoint where the transactions will be sent to |
+| ```ListenPort``` | The port where the local API will be listening to. Default 8585 |
 
 ### Run for the first time
 
@@ -82,6 +91,10 @@ The output on the console will be:
 ```
 2018/05/03 11:52:34 Service control action [start|stop] executed succesfully
 ```
+
+### Checking if the service is working
+
+If you open ```http://localhost:[ListenPort]/``` in your browser (so for the default configuration this would be [http://localhost:8585/](http://localhost:8585), you will see a friendly message "It works!". This is a signal that the server is listening and ready to accept requests.
 
 ### Uninstall
 

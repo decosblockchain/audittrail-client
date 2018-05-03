@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"time"
 
 	"github.com/decosblockchain/audittrail-client/config"
@@ -26,26 +28,41 @@ func (p *program) Start(s service.Service) error {
 	return nil
 }
 func (p *program) run() {
+
+	config.Init()
+
+	if len(os.Args) > 1 && os.Args[1] == "console" {
+		logging.Info.Println("Running in console mode")
+	}
+
+	address, err := library.GetAddress()
+	if err != nil {
+		logging.Error.Printf("Error getting address: %s\n", err.Error())
+		os.Exit(4)
+	}
+	logging.Info.Printf("My address is %s\n", address)
+
+	r := mux.NewRouter()
+	r.HandleFunc("/audit", routes.AuditHandler)
+	r.HandleFunc("/", routes.HomeHandler)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf("localhost:%d", config.ListenPort()), r))
+}
+func (p *program) Stop(s service.Service) error {
+	// Stop should not block. Return with a few seconds.
+	return nil
+}
+
+func main() {
 	// Create data, log directories if they do not exist
-	if _, err := os.Stat("./log"); os.IsNotExist(err) {
-		os.Mkdir("./log", 0775)
-	}
-
-	if _, err := os.Stat("./log/archive"); os.IsNotExist(err) {
-		os.Mkdir("./log/archive", 0775)
-	}
-
-	if _, err := os.Stat("./data"); os.IsNotExist(err) {
-		os.Mkdir("./data", 0775)
-	}
+	config.EnsurePathsExist()
 
 	cfg := &logwriter.Config{
 		BufferSize:       0,                 // no buffering
 		FreezeInterval:   24 * time.Hour,    // freeze log file every hour
 		HotMaxSize:       10 * logwriter.MB, // 10 MB max file size
 		CompressColdFile: false,             // compress cold file
-		HotPath:          "./log",
-		ColdPath:         "./log/archive",
+		HotPath:          path.Join(config.BaseDir(), "log"),
+		ColdPath:         path.Join(config.BaseDir(), "log", "archive"),
 		Mode:             logwriter.ProductionMode, // write to file only
 	}
 
@@ -63,30 +80,6 @@ func (p *program) run() {
 	}
 
 	logging.Init(lw, lw, lw, lw)
-	config.Init()
-
-	if len(os.Args) > 1 && os.Args[1] == "console" {
-		logging.Info.Println("Running in console mode")
-	}
-
-	address, err := library.GetAddress()
-	if err != nil {
-		logging.Error.Printf("Error getting address: %s", err.Error())
-		os.Exit(4)
-	}
-	logging.Info.Printf("My address is %s", address)
-
-	r := mux.NewRouter()
-	r.HandleFunc("/audit", routes.AuditHandler)
-
-	log.Fatal(http.ListenAndServe(":8000", r))
-}
-func (p *program) Stop(s service.Service) error {
-	// Stop should not block. Return with a few seconds.
-	return nil
-}
-
-func main() {
 
 	svcConfig := &service.Config{
 		Name:        "DecosBlockchainAuditConnector",
@@ -101,21 +94,21 @@ func main() {
 	} else {
 		s, err := service.New(prg, svcConfig)
 		if err != nil {
-			log.Fatal(err)
+			logging.Error.Println(err)
 			os.Exit(2)
 		}
 		if len(os.Args) > 1 {
 			err = service.Control(s, os.Args[1])
 			if err != nil {
-				log.Fatal(err)
+				logging.Error.Println(err)
 				os.Exit(3)
 			}
-			log.Printf("Service control action [%s] executed succesfully", os.Args[1])
+			log.Printf("Service control action [%s] executed succesfully\n", os.Args[1])
 			os.Exit(0)
 		}
 		err = s.Run()
 		if err != nil {
-			logger.Error(err)
+			logging.Error.Println(err)
 		}
 	}
 }
