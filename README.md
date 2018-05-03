@@ -25,7 +25,7 @@ The file ```config.json``` contains two configuration parameters. Under normal c
 
 ### Run for the first time
 
-When you run the executable for the first time, it will generate a private key for signing the blockchain transactions. This file is placed in data/privatekey.hex. Make sure this file is backed up somewhere. Run the executable in console mode to make it print out your public key (address):
+When you run the executable for the first time, it will generate a private key for signing the blockchain transactions. This file is placed in ```data/keyfile.hex```. Make sure this file is backed up somewhere. Run the executable in console mode to make it print out your public key (address):
 
 (For Windows:)
 
