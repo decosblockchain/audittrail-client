@@ -1,4 +1,4 @@
 {
-    "ServerUrl" : "https://audit.decosblockchain.com/api/",
+    "ServerUrl" : "http://localhost:3000/",
     "ListenPort": 8585
 }

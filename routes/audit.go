@@ -6,14 +6,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"net/http"
 
 	"github.com/decosblockchain/audittrail-client/config"
 	"github.com/decosblockchain/audittrail-client/library"
 	"github.com/decosblockchain/audittrail-client/logging"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type AuditRecord struct {
@@ -74,64 +71,30 @@ func AuditHandler(w http.ResponseWriter, r *http.Request) {
 	dataBuffer.Write(objectHash[:])
 	dataBuffer.Write(hash[:])
 
-	nonce, err := library.GetNonce()
-	if err != nil {
-		logging.Error.Printf("Error getting nonce: %s\n", err.Error())
+	tx, err := library.CreateTransaction(dataBuffer.Bytes())
+	library.SignTransaction(tx)
 
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	key, err := library.GetKey()
-	if err != nil {
-		_ = library.CancelNonce()
-		logging.Error.Printf("Error getting signing key: %s\n", err.Error())
-
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	addr := crypto.PubkeyToAddress(key.PublicKey)
-	signer := types.NewEIP155Signer(big.NewInt(192001))
-	tx, err := types.SignTx(types.NewTransaction(nonce, addr, big.NewInt(0), 1000000, big.NewInt(0), dataBuffer.Bytes()), signer, key)
-	if err != nil {
-		_ = library.CancelNonce()
-		logging.Error.Printf("Error signing TX: %s\n", err.Error())
-
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	rawTx := bytes.NewBuffer(nil)
-	err = tx.EncodeRLP(rawTx)
-	if err != nil {
-		_ = library.CancelNonce()
-		logging.Error.Printf("Error encoding transaction: %s\n", err.Error())
-
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	txJSON, err := json.Marshal(tx)
+	logging.Info.Printf("JSON:\n%s", string(txJSON))
 
 	var auditResponse AuditResponse
 	auditResponse.RecordHash = hex.EncodeToString(hash[:])
-	auditResponse.TransactionHash = tx.Hash().Hex()
+	//auditResponse.TransactionHash = tx.Hash().Hex()
 
 	js, err := json.Marshal(auditResponse)
 	if err != nil {
-		_ = library.CancelNonce()
 		logging.Error.Printf("Error encoding response to JSON: %s\n", err.Error())
 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	req, err := http.NewRequest("POST", config.SendUrl(), rawTx)
+	req, err := http.NewRequest("POST", config.SendUrl(), bytes.NewReader(txJSON))
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		_ = library.CancelNonce()
 		logging.Error.Printf("Error calling server: %s\n", err.Error())
 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -139,7 +102,6 @@ func AuditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusCreated { // created
-		_ = library.CancelNonce()
 		logging.Error.Printf("Unexpected response code from server: %d %s\n", resp.StatusCode, resp.Status)
 
 		http.Error(w, fmt.Sprintf("Received error from server: %d %s", resp.StatusCode, resp.Status), http.StatusInternalServerError)
